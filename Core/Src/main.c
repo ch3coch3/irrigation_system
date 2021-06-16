@@ -26,6 +26,7 @@
 #include "task.h"
 #include <stdio.h>
 #include <string.h>
+#include "STM_ENC28_J60.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +47,8 @@ uint8_t flag = 0;
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+SPI_HandleTypeDef hspi1;
+
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart3;
@@ -60,23 +63,21 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 void servo_Motor(void *parameters);
 void water_height(void *parameters);
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-	adc_value = HAL_ADC_GetValue(hadc);
-	if( adc_value < 2800 && adc_value >10){
-		flag = 1;
-	}
-	else if(adc_value > 3100){
-		flag = 2;
-	}
-}
+uint8_t spiData[2];
+
+// 0x54,0xAB,0x3A,0xB4,0x7D,0xF6,
+uint8_t ARP_req[42] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0x74,0x69,0x69,0x2D,0x30,0x31, 0x08,0x06,
+						0x00,0x01, 0x08,0x00, 0x06, 0x04, 0x00,0x01, 0x74,0x69,0x69,0x2D,0x30,0x31,
+						0xC0,0xA8,0x00,106, 0x00,0x00,0x00,0x00,0x00,0x00, 0xC0,0xA8,0x00,0x01,};
 /* USER CODE END 0 */
 
 /**
@@ -110,14 +111,14 @@ int main(void)
   MX_TIM2_Init();
   MX_ADC1_Init();
   MX_USART3_UART_Init();
-
-  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
-  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
-  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
-  vTaskStartScheduler();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
-
+  ENC28_Init();
+//  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
+//  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
+//  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
+//  vTaskStartScheduler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,7 +128,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+	  ENC28_packetSend(42,ARP_req);
+	  HAL_Delay(2000);
+//	  HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_15);
   }
   /* USER CODE END 3 */
 }
@@ -222,6 +225,44 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
@@ -334,10 +375,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0|GPIO_PIN_7, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PD0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pins : PD0 PD7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -369,6 +410,17 @@ void water_height(void *parameters){
 	  }
 	  HAL_Delay(1000);
 	  HAL_ADC_Start_IT(&hadc1);
+	}
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	adc_value = HAL_ADC_GetValue(hadc);
+	if( adc_value < 2800 && adc_value >10){
+		flag = 1;
+	}
+	else if(adc_value > 3100){
+		flag = 2;
 	}
 }
 /* USER CODE END 4 */

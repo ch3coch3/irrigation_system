@@ -27,6 +27,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ramfunc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
@@ -38,7 +39,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/portable/ARM_CM4F/portmacro.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_wrappers.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h
+ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h \
+ ../Core/Inc/STM_ENC28_J60.h
 
 ../Core/Inc/main.h:
 
@@ -98,6 +100,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h:
 
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h:
+
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
@@ -121,3 +125,5 @@ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_
 C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h:
 
 C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h:
+
+../Core/Inc/STM_ENC28_J60.h:

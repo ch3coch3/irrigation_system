@@ -9,7 +9,6 @@ C_SRCS += \
 ../FreeRTOS/event_groups.c \
 ../FreeRTOS/list.c \
 ../FreeRTOS/queue.c \
-../FreeRTOS/stream_buffer.c \
 ../FreeRTOS/tasks.c \
 ../FreeRTOS/timers.c 
 
@@ -18,7 +17,6 @@ OBJS += \
 ./FreeRTOS/event_groups.o \
 ./FreeRTOS/list.o \
 ./FreeRTOS/queue.o \
-./FreeRTOS/stream_buffer.o \
 ./FreeRTOS/tasks.o \
 ./FreeRTOS/timers.o 
 
@@ -27,7 +25,6 @@ C_DEPS += \
 ./FreeRTOS/event_groups.d \
 ./FreeRTOS/list.d \
 ./FreeRTOS/queue.d \
-./FreeRTOS/stream_buffer.d \
 ./FreeRTOS/tasks.d \
 ./FreeRTOS/timers.d 
 
@@ -41,8 +38,6 @@ FreeRTOS/list.o: ../FreeRTOS/list.c FreeRTOS/subdir.mk
 	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/include" -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/portable/ARM_CM4F" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"FreeRTOS/list.d" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
 FreeRTOS/queue.o: ../FreeRTOS/queue.c FreeRTOS/subdir.mk
 	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/include" -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/portable/ARM_CM4F" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"FreeRTOS/queue.d" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
-FreeRTOS/stream_buffer.o: ../FreeRTOS/stream_buffer.c FreeRTOS/subdir.mk
-	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/include" -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/portable/ARM_CM4F" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"FreeRTOS/stream_buffer.d" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
 FreeRTOS/tasks.o: ../FreeRTOS/tasks.c FreeRTOS/subdir.mk
 	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/include" -I"C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final project/FreeRTOS/portable/ARM_CM4F" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"FreeRTOS/tasks.d" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
 FreeRTOS/timers.o: ../FreeRTOS/timers.c FreeRTOS/subdir.mk
