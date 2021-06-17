@@ -1,4 +1,5 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/ip_arp_udp_tcp.o: ../Core/Src/ip_arp_udp_tcp.c \
+ ../Core/Inc/ip_arp_udp_tcp.h ../Core/Inc/net.h ../Core/Inc/enc28j60.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -31,19 +32,13 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/FreeRTOS.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/FreeRTOSConfig.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/projdefs.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/portable.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/deprecated_definitions.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/portable/ARM_CM4F/portmacro.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_wrappers.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h \
- C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h \
- ../Core/Inc/webServer.h ../Core/Inc/ip_arp_udp_tcp.h ../Core/Inc/net.h \
- ../Core/Inc/enc28j60.h ../Core/Inc/delay.h
+ ../Core/Inc/delay.h
 
-../Core/Inc/main.h:
+../Core/Inc/ip_arp_udp_tcp.h:
+
+../Core/Inc/net.h:
+
+../Core/Inc/enc28j60.h:
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 
@@ -108,31 +103,5 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/FreeRTOS.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/FreeRTOSConfig.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/projdefs.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/portable.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/deprecated_definitions.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/portable/ARM_CM4F/portmacro.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_wrappers.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h:
-
-C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h:
-
-../Core/Inc/webServer.h:
-
-../Core/Inc/ip_arp_udp_tcp.h:
-
-../Core/Inc/net.h:
-
-../Core/Inc/enc28j60.h:
 
 ../Core/Inc/delay.h:

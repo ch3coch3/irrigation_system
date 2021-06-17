@@ -26,7 +26,11 @@
 #include "task.h"
 #include <stdio.h>
 #include <string.h>
-#include "STM_ENC28_J60.h"
+//#include "STM_ENC28_J60.h"
+
+#include "webServer.h"
+#include <stdlib.h>
+#include <stdarg.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,11 +54,33 @@ ADC_HandleTypeDef hadc1;
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+char writeValue[60];
 
+static uint16_t port = 80;
+int i;
+uint16_t cntBytesTX = 0;
+uint32_t sampleTX = 0;
+uint8_t S1 = 0;
+uint8_t S2 = 0;
+uint8_t S3 = 0;
+
+char *request;
+
+uint8_t spiData[2];
+
+// 0x54,0xAB,0x3A,0xB4,0x7D,0xF6,
+uint8_t ARP_req[42] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0x74,0x69,0x69,0x2D,0x30,0x31, 0x08,0x06,
+						0x00,0x01, 0x08,0x00, 0x06, 0x04, 0x00,0x01, 0x74,0x69,0x69,0x2D,0x30,0x31,
+						0xC0,0xA8,0x00,106, 0x00,0x00,0x00,0x00,0x00,0x00, 0xC0,0xA8,0x00,0x01,};
+
+// network configuration
+uint8_t mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+uint8_t ip[] = { 192, 168, 0, 109 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,20 +90,18 @@ static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void servo_Motor(void *parameters);
 void water_height(void *parameters);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
+void gerarHtml(void);
+void server(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t spiData[2];
 
-// 0x54,0xAB,0x3A,0xB4,0x7D,0xF6,
-uint8_t ARP_req[42] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0x74,0x69,0x69,0x2D,0x30,0x31, 0x08,0x06,
-						0x00,0x01, 0x08,0x00, 0x06, 0x04, 0x00,0x01, 0x74,0x69,0x69,0x2D,0x30,0x31,
-						0xC0,0xA8,0x00,106, 0x00,0x00,0x00,0x00,0x00,0x00, 0xC0,0xA8,0x00,0x01,};
 /* USER CODE END 0 */
 
 /**
@@ -112,9 +136,13 @@ int main(void)
   MX_ADC1_Init();
   MX_USART3_UART_Init();
   MX_SPI1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim3);
+  setup_server(mac, ip, port);
 
-  ENC28_Init();
+  memset(&writeValue,0,sizeof(writeValue));
+//  ENC28_Init();
 //  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
 //  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
 //  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
@@ -125,12 +153,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  server();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ENC28_packetSend(42,ARP_req);
-	  HAL_Delay(2000);
-//	  HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_15);
+//	  ENC28_packetSend(42,ARP_req);
+//	  HAL_Delay(2000);
   }
   /* USER CODE END 3 */
 }
@@ -326,6 +354,51 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 72-1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 65535;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -375,7 +448,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0|GPIO_PIN_7, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD0 PD7 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_7;
@@ -422,6 +505,178 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	else if(adc_value > 3100){
 		flag = 2;
 	}
+}
+
+void gerarHtml(void)
+{
+
+	  print_text("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
+	  print_text("<html><head>");
+	  print_text("<title>Eletrocursos ENC28J60 Web Server</title>");
+	  print_text("<link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css' rel='stylesheet'></link>");
+	  print_text("</head>");
+	  print_text("<body>");
+	  print_text("<div class='jumbotron'>");
+	  print_text("<h2>ELETROCURSOS - Interface De Comando</h2>");
+
+	  print_text("<div class='row'>");
+	  print_text("<div class='col-md-3'>");
+	  print_text("<table class='table table-bordered'>");
+	  print_text("<tbody>");
+
+	  print_text("<tr>");
+
+
+	  print_text("<td>Saida 1 - ");
+	  if(S1 == 1)
+	  {
+	  	 print_text("On");
+	  	 print_text("</td><td><a href='/S1/OFF'>DESLIGAR</a>");
+	  }
+	  else
+	  {
+	  	 print_text("Off");
+	  	 print_text("</td><td><a href='/S1/ON'>LIGAR</a>");
+	  }
+
+	  print_text("</td>");
+	  print_text("</tr>");
+
+	  print_text("<td>Saida 2 - ");
+	  if(S2 == 1)
+	  {
+	  	 print_text("On");
+	  	 print_text("</td><td><a href='/S2/OFF'>DESLIGAR</a>");
+	  }
+	  else
+	  {
+	  	 print_text("Off");
+	  	 print_text("</td><td><a href='/S2/ON'>LIGAR</a>");
+	  }
+
+	  print_text("</td>");
+	  print_text("</tr>");
+
+	  print_text("<td>Saida 3 - ");
+	  if(S3 == 1)
+	  {
+	  	 print_text("On");
+	  	 print_text("</td><td><a href='/S3/OFF'>DESLIGAR</a>");
+	  }
+	  else
+	  {
+	  	 print_text("Off");
+	  	 print_text("</td><td><a href='/S3/ON'>LIGAR</a>");
+	  }
+
+	  print_text("</td>");
+	  print_text("</tr>");
+
+
+	  print_text("<td>Download");
+
+	  print_text("</td><td><a href='/DOWNLOAD.txt'>DOWNLOAD</a>");
+
+	  print_text("</td>");
+
+	  print_text("</html>");
+
+	  respond_single();
+}
+
+
+void server(void){
+	request = serviceRequest();
+//	gerarHtml();
+//	if(request != NULL){
+//		gerarHtml();
+//	}
+	if(request != NULL){
+	}
+	else{
+		print_text("<H1>Arduino</H1>");
+		print_text("<H2>");
+		print_text("</H2>");
+		respond_single();
+//		gerarHtml();
+	}
+	HAL_Delay(100);
+//	if (request != NULL)
+//	{
+//		if (strcmp("S1/ON",request) == 0)
+//		{
+//			S1 = 1;
+//			dig_out_Write(DOUT_LED1,OUT_HI);
+//			gerarHtml();
+//		}
+//		else if (strcmp("S1/OFF",request) == 0)
+//		{
+//			S1 = 0;
+//			dig_out_Write(DOUT_LED1,OUT_LO);
+//			gerarHtml();
+//		}
+//		else if (strcmp("S2/ON",request) == 0)
+//		{
+//			S2 = 1;
+//			dig_out_Write(DOUT_LED2,OUT_HI);
+//			gerarHtml();
+//		}
+//		else if (strcmp("S2/OFF",request) == 0)
+//		{
+//			S2 = 0;
+//			dig_out_Write(DOUT_LED2,OUT_LO);
+//			gerarHtml();
+//		}
+//		else if (strcmp("S3/ON",request) == 0)
+//		{
+//			S3 = 1;
+//			dig_out_Write(DOUT_LED3,OUT_HI);
+//			gerarHtml();
+//		}
+//		else if (strcmp("S3/OFF",request) == 0)
+//		{
+//			S3 = 0;
+//			dig_out_Write(DOUT_LED3,OUT_LO);
+//			gerarHtml();
+//		}
+//		else if (strcmp("DOWNLOAD.txt",request) == 0)
+//		{
+//			respond_ack();
+//			print_text("HTTP/1.0 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n");
+//
+//			cntBytesTX = 0;
+//			sampleTX = 0;
+//			do
+//			{
+//
+//				memset(&writeValue,0,sizeof(writeValue));
+//				strcpy(writeValue, "23/12/2017 ; 10:50:00 ; 28?�� \r\n");
+//				print_text(&writeValue[0]);
+//
+//				cntBytesTX += strlen(writeValue);
+//				sampleTX++;
+//
+//				if (cntBytesTX>=1200)
+//				{
+//					cntBytesTX = 0;
+//					respond_multiple();
+//					Delayms(5);
+//				}
+//				Delayms(1);
+//			} while (sampleTX < 50000);
+//
+//			respond_end();
+//			Delayms(10);
+//
+//		}
+//		else
+//		{
+//			gerarHtml();
+//
+//		}
+//
+//	}
+//	Delayms(100);
 }
 /* USER CODE END 4 */
 

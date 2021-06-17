@@ -1,0 +1,8 @@
+webServer.c:46:6:setup_server	24	static
+webServer.c:66:7:serviceRequest	16	static
+webServer.c:141:6:print_text	24	static
+webServer.c:151:6:print_number	32	static
+webServer.c:158:6:respond_single	8	static
+webServer.c:165:6:respond_multiple	8	static
+webServer.c:170:6:respond_end	8	static
+webServer.c:176:6:respond_ack	8	static
