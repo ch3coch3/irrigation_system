@@ -60,8 +60,7 @@ UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 char writeValue[60];
-
-static uint16_t port = 80;
+char template[1000];
 int i;
 uint16_t cntBytesTX = 0;
 uint32_t sampleTX = 0;
@@ -80,7 +79,8 @@ uint8_t ARP_req[42] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0x74,0x69,0x69,0x2D,0x30,0
 
 // network configuration
 uint8_t mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-uint8_t ip[] = { 192, 168, 0, 109 };
+uint8_t ip[] = { 192, 168, 0, 116 };
+uint16_t port = 80;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,8 +95,8 @@ static void MX_TIM3_Init(void);
 void servo_Motor(void *parameters);
 void water_height(void *parameters);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
-void gerarHtml(void);
-void server(void);
+void homePage(void);
+void server(void *parameters);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,20 +140,20 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
   setup_server(mac, ip, port);
-
+  homePage();
   memset(&writeValue,0,sizeof(writeValue));
 //  ENC28_Init();
-//  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
-//  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
-//  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
-//  vTaskStartScheduler();
+  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
+  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
+  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
+  xTaskCreate(server,"WebServer",3000,NULL,3,NULL);
+  vTaskStartScheduler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  server();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -507,176 +507,65 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	}
 }
 
-void gerarHtml(void)
-{
-
-	  print_text("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
-	  print_text("<html><head>");
-	  print_text("<title>Eletrocursos ENC28J60 Web Server</title>");
-	  print_text("<link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css' rel='stylesheet'></link>");
-	  print_text("</head>");
-	  print_text("<body>");
-	  print_text("<div class='jumbotron'>");
-	  print_text("<h2>ELETROCURSOS - Interface De Comando</h2>");
-
-	  print_text("<div class='row'>");
-	  print_text("<div class='col-md-3'>");
-	  print_text("<table class='table table-bordered'>");
-	  print_text("<tbody>");
-
-	  print_text("<tr>");
-
-
-	  print_text("<td>Saida 1 - ");
-	  if(S1 == 1)
-	  {
-	  	 print_text("On");
-	  	 print_text("</td><td><a href='/S1/OFF'>DESLIGAR</a>");
-	  }
-	  else
-	  {
-	  	 print_text("Off");
-	  	 print_text("</td><td><a href='/S1/ON'>LIGAR</a>");
-	  }
-
-	  print_text("</td>");
-	  print_text("</tr>");
-
-	  print_text("<td>Saida 2 - ");
-	  if(S2 == 1)
-	  {
-	  	 print_text("On");
-	  	 print_text("</td><td><a href='/S2/OFF'>DESLIGAR</a>");
-	  }
-	  else
-	  {
-	  	 print_text("Off");
-	  	 print_text("</td><td><a href='/S2/ON'>LIGAR</a>");
-	  }
-
-	  print_text("</td>");
-	  print_text("</tr>");
-
-	  print_text("<td>Saida 3 - ");
-	  if(S3 == 1)
-	  {
-	  	 print_text("On");
-	  	 print_text("</td><td><a href='/S3/OFF'>DESLIGAR</a>");
-	  }
-	  else
-	  {
-	  	 print_text("Off");
-	  	 print_text("</td><td><a href='/S3/ON'>LIGAR</a>");
-	  }
-
-	  print_text("</td>");
-	  print_text("</tr>");
-
-
-	  print_text("<td>Download");
-
-	  print_text("</td><td><a href='/DOWNLOAD.txt'>DOWNLOAD</a>");
-
-	  print_text("</td>");
-
-	  print_text("</html>");
-
-	  respond_single();
+void server(void *parameters){
+	for(;;){
+		request = serviceRequest();
+		if(request != NULL){
+			if(strcmp(request,"?control=add")){
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+				HAL_Delay(500);
+			}
+		    HAL_UART_Transmit(&huart3, (uint8_t *)request, strlen(request) ,0xffff);
+		}
+		else{
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+			print_text(template);
+			respond_single();
+		}
+		HAL_Delay(100);
+	}
 }
 
 
-void server(void){
-	request = serviceRequest();
-//	gerarHtml();
-//	if(request != NULL){
-//		gerarHtml();
-//	}
-	if(request != NULL){
-	}
-	else{
-		print_text("<H1>Arduino</H1>");
-		print_text("<H2>");
-		print_text("</H2>");
-		respond_single();
-//		gerarHtml();
-	}
-	HAL_Delay(100);
-//	if (request != NULL)
-//	{
-//		if (strcmp("S1/ON",request) == 0)
-//		{
-//			S1 = 1;
-//			dig_out_Write(DOUT_LED1,OUT_HI);
-//			gerarHtml();
-//		}
-//		else if (strcmp("S1/OFF",request) == 0)
-//		{
-//			S1 = 0;
-//			dig_out_Write(DOUT_LED1,OUT_LO);
-//			gerarHtml();
-//		}
-//		else if (strcmp("S2/ON",request) == 0)
-//		{
-//			S2 = 1;
-//			dig_out_Write(DOUT_LED2,OUT_HI);
-//			gerarHtml();
-//		}
-//		else if (strcmp("S2/OFF",request) == 0)
-//		{
-//			S2 = 0;
-//			dig_out_Write(DOUT_LED2,OUT_LO);
-//			gerarHtml();
-//		}
-//		else if (strcmp("S3/ON",request) == 0)
-//		{
-//			S3 = 1;
-//			dig_out_Write(DOUT_LED3,OUT_HI);
-//			gerarHtml();
-//		}
-//		else if (strcmp("S3/OFF",request) == 0)
-//		{
-//			S3 = 0;
-//			dig_out_Write(DOUT_LED3,OUT_LO);
-//			gerarHtml();
-//		}
-//		else if (strcmp("DOWNLOAD.txt",request) == 0)
-//		{
-//			respond_ack();
-//			print_text("HTTP/1.0 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n");
-//
-//			cntBytesTX = 0;
-//			sampleTX = 0;
-//			do
-//			{
-//
-//				memset(&writeValue,0,sizeof(writeValue));
-//				strcpy(writeValue, "23/12/2017 ; 10:50:00 ; 28?�� \r\n");
-//				print_text(&writeValue[0]);
-//
-//				cntBytesTX += strlen(writeValue);
-//				sampleTX++;
-//
-//				if (cntBytesTX>=1200)
-//				{
-//					cntBytesTX = 0;
-//					respond_multiple();
-//					Delayms(5);
-//				}
-//				Delayms(1);
-//			} while (sampleTX < 50000);
-//
-//			respond_end();
-//			Delayms(10);
-//
-//		}
-//		else
-//		{
-//			gerarHtml();
-//
-//		}
-//
-//	}
-//	Delayms(100);
+
+void homePage(void){
+	strcat(template,"<!DOCTYPE html>");
+	strcat(template,"<html lang=\"en\">");
+	strcat(template,"<head>");
+	strcat(template,"<meta charset=\"UTF-8\">");
+	strcat(template,"<meta http-equiv=\"refresh\" content=\"100\">");
+	strcat(template,"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+	strcat(template,"<title>Auto Irrigation System</title>");
+	strcat(template,"</head>");
+	strcat(template,"<body>");
+	strcat(template,"<h1>Auto Irrigation System</h1>");
+	strcat(template,"<form action=\"http://192.168.0.116\" method=\"GET\">");
+	strcat(template,"<button name = \"control\" type = \"submit\" value = \"add\">add water</button>");
+	strcat(template,"<button name = \"control\" type = \"submit\" value = \"spray\">spray water</button>");
+	strcat(template,"</form>");
+	strcat(template,"</body>");
+	strcat(template,"</html>");
+//	print_text("<!DOCTYPE html>");
+//	print_text("<html lang=\"en\">");
+//	print_text("<head>");
+//	print_text("<meta charset=\"UTF-8\">");
+//	print_text("<meta http-equiv=\"refresh\" content=\"3\">");
+//	print_text("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+//	print_text("<title>Auto Irrigation System</title>");
+//	print_text("</head>");
+//	print_text("<body>");
+//	print_text("<h1>Auto Irrigation System</h1>");
+//	print_text("<form action=\"http://google.com/search\" method=\"GET\">");
+//	print_text("訊息:<input name=\"msg\" type = \"text\"><br>");
+//	print_text("燈光:<input name = \"light\" type = \"radio\" value = \"on\">開");
+//	print_text("<input name = \"light\" type = \"radio\" value = \"OFF\" checked>關");
+//	print_text("<br><br>");
+//	print_text("<input type = \"submit\" value = \"送出\">");
+//	print_text("</form>");
+//	print_text("</body> ");
+//	print_text("</html>");
+//	print_text(template);
+//	respond_single();
 }
 /* USER CODE END 4 */
 
