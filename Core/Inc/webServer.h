@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <ip_arp_udp_tcp.h>
-
+#include <stdio.h>
+#include <string.h>
 uint16_t _port;
 
 void setup_server(uint8_t macAddress[], uint8_t ipAddress[], uint16_t port);

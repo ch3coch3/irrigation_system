@@ -40,6 +40,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_wrappers.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h \
  C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h \
+ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/semphr.h \
+ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/queue.h \
+ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h \
  ../Core/Inc/webServer.h ../Core/Inc/ip_arp_udp_tcp.h ../Core/Inc/net.h \
  ../Core/Inc/enc28j60.h ../Core/Inc/delay.h
 
@@ -126,6 +129,12 @@ C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/mpu_
 C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h:
 
 C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/list.h:
+
+C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/semphr.h:
+
+C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/queue.h:
+
+C:/Users/02061/STM32CubeIDE/workspace_1.6.1/final\ project/FreeRTOS/include/task.h:
 
 ../Core/Inc/webServer.h:
 

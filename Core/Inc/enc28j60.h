@@ -264,6 +264,7 @@
 
 
 // functions
+unsigned char ENC28J60_SendByte(uint8_t tx);
 extern uint8_t enc28j60ReadOp(uint8_t op, uint8_t address);
 extern void enc28j60WriteOp(uint8_t op, uint8_t address, uint8_t data);
 extern void enc28j60ReadBuffer(uint16_t len, uint8_t* data);

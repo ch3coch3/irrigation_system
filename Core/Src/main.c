@@ -26,6 +26,7 @@
 #include "task.h"
 #include <stdio.h>
 #include <string.h>
+#include "semphr.h"
 //#include "STM_ENC28_J60.h"
 
 #include "webServer.h"
@@ -37,6 +38,8 @@
 /* USER CODE BEGIN PTD */
 uint16_t adc_value;
 uint8_t flag = 0;
+
+int waterlevel;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -61,6 +64,11 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 char writeValue[60];
 char template[1000];
+char data[80];
+
+char front[500];
+char back[300];
+
 int i;
 uint16_t cntBytesTX = 0;
 uint32_t sampleTX = 0;
@@ -71,11 +79,6 @@ uint8_t S3 = 0;
 char *request;
 
 uint8_t spiData[2];
-
-// 0x54,0xAB,0x3A,0xB4,0x7D,0xF6,
-uint8_t ARP_req[42] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0x74,0x69,0x69,0x2D,0x30,0x31, 0x08,0x06,
-						0x00,0x01, 0x08,0x00, 0x06, 0x04, 0x00,0x01, 0x74,0x69,0x69,0x2D,0x30,0x31,
-						0xC0,0xA8,0x00,106, 0x00,0x00,0x00,0x00,0x00,0x00, 0xC0,0xA8,0x00,0x01,};
 
 // network configuration
 uint8_t mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -93,10 +96,17 @@ static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void servo_Motor(void *parameters);
-void water_height(void *parameters);
+void vHandlerTask(void *parameters);
+//void water_height(void);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
+
+void frottemp();
+void backtemp();
+
 void homePage(void);
 void server(void *parameters);
+
+SemaphoreHandle_t xSemaphore;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,13 +150,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
   setup_server(mac, ip, port);
-  homePage();
+//  homePage();
+
+  frottemp();
+  backtemp();
+  xSemaphore = xSemaphoreCreateBinary();
+
   memset(&writeValue,0,sizeof(writeValue));
 //  ENC28_Init();
   HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
-  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
-  xTaskCreate(water_height,"waterHeight",1000,NULL,2,NULL);
-  xTaskCreate(server,"WebServer",3000,NULL,3,NULL);
+//  xTaskCreate(servo_Motor,"servoMotor",1000,NULL,1,NULL);
+  xTaskCreate(vHandlerTask,"Handler_Task",1000,NULL,1,NULL);
+  xTaskCreate(server,"WebServer",3000,NULL,2,NULL);
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
@@ -159,6 +174,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 //	  ENC28_packetSend(42,ARP_req);
 //	  HAL_Delay(2000);
+//	  water_height();
   }
   /* USER CODE END 3 */
 }
@@ -451,7 +467,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_0|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -460,8 +476,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD0 PD7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_7;
+  /*Configure GPIO pins : PD12 PD0 PD7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_0|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -479,11 +495,13 @@ void servo_Motor(void *parameters){
 	}
 }
 
-void water_height(void *parameters){
+void vHandlerTask(void *parameters){
+//void water_height(void){
 	for(;;){
-	  char data[80];
-	  sprintf(data, "Water is detected! The level : %d \n\r", adc_value);
-	  HAL_UART_Transmit(&huart3, (uint8_t *)data, strlen(data) ,0xffff);
+//	  char data[80];
+
+	  sprintf(data, "Water is detected! The level : %d  The flag = %d \n\r", adc_value, flag);
+//	  HAL_UART_Transmit(&huart3, (uint8_t *)data, strlen(data) ,0xffff);
 	  if(flag == 1){
 		  HAL_GPIO_WritePin(GPIOD,GPIO_PIN_0,GPIO_PIN_SET);
 
@@ -491,41 +509,102 @@ void water_height(void *parameters){
 	  else if(flag == 2){
 		  HAL_GPIO_WritePin(GPIOD,GPIO_PIN_0,GPIO_PIN_RESET);
 	  }
-	  HAL_Delay(1000);
-	  HAL_ADC_Start_IT(&hadc1);
+	  HAL_Delay(100);
+
+	  xSemaphoreGive(xSemaphore);
+//	  HAL_ADC_Start_IT(&hadc1);
 	}
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+//	BaseType_t xHigherPriorityTaskWoken;
+//	xHigherPriorityTaskWoken = pdFALSE;
 	adc_value = HAL_ADC_GetValue(hadc);
-	if( adc_value < 2800 && adc_value >10){
+
+	waterlevel = adc_value*40/4096;
+	if(waterlevel<18)
+	{
+		waterlevel = 30;
+	}
+	else if(waterlevel < 30 && waterlevel >= 18){
+		waterlevel = 31;
+	}
+
+	waterlevel = waterlevel-30;
+
+	if( adc_value < 2200 && adc_value >10){
 		flag = 1;
 	}
-	else if(adc_value > 3100){
+	else if(adc_value > 3000){
 		flag = 2;
 	}
+//	xSemaphoreGiveFromISR( xSemaphore, &xHigherPriorityTaskWoken );
+//	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
-
+int adc=0;
 void server(void *parameters){
+
 	for(;;){
-		request = serviceRequest();
-		if(request != NULL){
-			if(strcmp(request,"?control=add")){
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-				HAL_Delay(500);
+		adc += 1;
+//
+		if(xSemaphoreTake(xSemaphore, portMAX_DELAY)){
+
+			request = serviceRequest();
+			if(request != NULL){
+				if(strcmp(request,"?control=spray")){
+
+					TIM2->CCR1 = 35;
+					HAL_Delay(100);
+					TIM2->CCR1 = 60;
+					HAL_Delay(100);
+				}
+				else if(strcmp(request,"?control=add")){
+
+					HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET);
+					HAL_Delay(500);
+					HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET);
+
+				}
+				print_text(front);
+
+	            sprintf(data,"<p>Water is detected! The level : %d </p>", adc_value);
+
+				print_text(data);
+
+				print_text(back);
+
+				respond_single();
+				HAL_UART_Transmit(&huart3, (uint8_t *)request, strlen(request) ,0xffff);
 			}
-		    HAL_UART_Transmit(&huart3, (uint8_t *)request, strlen(request) ,0xffff);
+			HAL_ADC_Start_IT(&hadc1);
 		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-			print_text(template);
-			respond_single();
-		}
-		HAL_Delay(100);
 	}
 }
+void frottemp(){
+    // frontHTML template
+	strcat(front,"<!DOCTYPE html>");
+	strcat(front,"<html lang=\"en\">");
+	strcat(front,"<head>");
+	strcat(front,"<meta charset=\"UTF-8\">");
+	strcat(front,"<meta http-equiv=\"refresh\" content=\"10\" url = \"http://192.168.0.116\">");
+	strcat(front,"<meta http-equiv=\"refresh\" content=\"10\">");
+	strcat(front,"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+	strcat(front,"<title>Auto Irrigation System</title>");
+	strcat(front,"</head>");
+	strcat(front,"<body>");
+	strcat(front,"<h1>Auto Irrigation System</h1>");
 
+    strcat(front,"<form action=\"http://192.168.0.116\" method=\"GET\">");
+	strcat(front,"<button name = \"control\" type = \"submit\" value = \"add\">add water</button>");
+	strcat(front,"<button name = \"control\" type = \"submit\" value = \"spray\">spray water</button>");
+}
+void backtemp(){
+    // back HTML template
+	strcat(back,"</form>");
+	strcat(back,"</body>");
+	strcat(back,"</html>");
+}
 
 
 void homePage(void){
@@ -539,33 +618,14 @@ void homePage(void){
 	strcat(template,"</head>");
 	strcat(template,"<body>");
 	strcat(template,"<h1>Auto Irrigation System</h1>");
-	strcat(template,"<form action=\"http://192.168.0.116\" method=\"GET\">");
+	strcat(template,"<form action=\"http://192.168.0.160\" method=\"GET\">");
 	strcat(template,"<button name = \"control\" type = \"submit\" value = \"add\">add water</button>");
 	strcat(template,"<button name = \"control\" type = \"submit\" value = \"spray\">spray water</button>");
+
+
 	strcat(template,"</form>");
 	strcat(template,"</body>");
 	strcat(template,"</html>");
-//	print_text("<!DOCTYPE html>");
-//	print_text("<html lang=\"en\">");
-//	print_text("<head>");
-//	print_text("<meta charset=\"UTF-8\">");
-//	print_text("<meta http-equiv=\"refresh\" content=\"3\">");
-//	print_text("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-//	print_text("<title>Auto Irrigation System</title>");
-//	print_text("</head>");
-//	print_text("<body>");
-//	print_text("<h1>Auto Irrigation System</h1>");
-//	print_text("<form action=\"http://google.com/search\" method=\"GET\">");
-//	print_text("訊息:<input name=\"msg\" type = \"text\"><br>");
-//	print_text("燈光:<input name = \"light\" type = \"radio\" value = \"on\">開");
-//	print_text("<input name = \"light\" type = \"radio\" value = \"OFF\" checked>關");
-//	print_text("<br><br>");
-//	print_text("<input type = \"submit\" value = \"送出\">");
-//	print_text("</form>");
-//	print_text("</body> ");
-//	print_text("</html>");
-//	print_text(template);
-//	respond_single();
 }
 /* USER CODE END 4 */
 

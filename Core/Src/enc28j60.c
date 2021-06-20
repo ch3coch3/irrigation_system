@@ -28,75 +28,68 @@ extern SPI_HandleTypeDef hspi1;
 
 //uint8_t enc28j60_rxtx(uint8_t data)
 //{
-////	while(SPI_I2S_GetFlagStatus(SPI_ENC28J60, SPI_I2S_FLAG_TXE)==RESET);
-////	SPI_I2S_SendData(SPI_ENC28J60,data);
-////
-////	while(SPI_I2S_GetFlagStatus(SPI_ENC28J60, SPI_I2S_FLAG_RXNE)==RESET);
-////	return SPI_I2S_ReceiveData(SPI_ENC28J60);
+//	while(__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_TXE)==RESET);
+//	HAL_SPI_Transmit(&hspi1,&data,sizeof(data), 100);
+//
+//	while(__HAL_SPI_GET_FLAG(&hspi1, SPI_FLAG_RXNE)==RESET);
+//	return HAL_SPI_Receive(&hspi1,&data,sizeof(data),100);
 //}
 //
 //#define enc28j60_rx() enc28j60_rxtx(0xff)
 //#define enc28j60_tx(data) enc28j60_rxtx(data)
 
+unsigned char ENC28J60_SendByte(uint8_t tx)
+{
+	uint8_t rx = 0;
+	int r;
+
+	r = HAL_SPI_TransmitReceive(&hspi1, &tx, &rx, 1, 0xffffffff);
+
+//	if (r != HAL_OK)
+//		Error_Handler();
+
+	return rx;
+}
+
 uint8_t enc28j60ReadOp(uint8_t op, uint8_t address)
 {
-	uint8_t spiData[2];
+	uint8_t temp;
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET);
-	spiData[0] = (op| (address & ADDR_MASK));
-	HAL_SPI_Transmit(&hspi1, spiData, 1, 100);
-	if(address & 0x80)
-	{
-		//HAL_SPI_Transmit(&hspi1, spiData, 1, 100);
-		HAL_SPI_Receive(&hspi1, &spiData[1], 1, 100);
-	}
-	HAL_SPI_Receive(&hspi1, &spiData[1], 1, 100);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
+    // issue read command
+    ENC28J60_SendByte(op | (address & ADDR_MASK));
 
-	return spiData[1];
+    if (address & 0x80)
+        temp = ENC28J60_SendByte(0xFF);
+    temp = ENC28J60_SendByte(0xFF);
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
+    return temp;
 }
 
 void enc28j60WriteOp(uint8_t op, uint8_t address, uint8_t data)
 {
-	uint8_t spiData[2];
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET);
-	spiData[0] = (op| (address & ADDR_MASK)); //((oper<<5)&0xE0)|(addr & ADDR_MASK);
-	spiData[1] = data;
-	HAL_SPI_Transmit(&hspi1, spiData, 2, 100);
+    ENC28J60_SendByte(op | (address & ADDR_MASK));
+    ENC28J60_SendByte(data);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
 }
 
 void enc28j60ReadBuffer(uint16_t len, uint8_t* data)
 {
-		uint8_t spiData[2];
-		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_RESET);
-		spiData[0] = ENC28J60_READ_BUF_MEM;
-//		enc28j60_select();
-		HAL_SPI_Transmit(&hspi1, spiData, 1, 100);
-//		enc28j60_tx(ENC28J60_READ_BUF_MEM);
-//		while(len--)
-//		{
-			 HAL_SPI_Receive(&hspi1, data, len, 100);
-//		}
-		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_SET);
-//		enc28j60_release();
+	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_RESET);
+    ENC28J60_SendByte(ENC28J60_READ_BUF_MEM);
+    while (len--) {
+        *data++ = ENC28J60_SendByte(0x00);
+    }
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
 }
 
 void enc28j60WriteBuffer(uint16_t len, uint8_t* data)
 {
-		uint8_t spiData[2];
-		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_RESET);
-//		enc28j60_select();
-		spiData[0] = ENC28J60_WRITE_BUF_MEM;
-		HAL_SPI_Transmit(&hspi1, spiData, 1, 100);
-		HAL_SPI_Transmit(&hspi1, data, len, 100);
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
-//		while(len--)
-//		{
-//			HAL_SPI_Transmit(&hspi1, data++, len, 100);
-////			enc28j60_tx(*(data++));
-//		}
-//		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_SET);
-//		enc28j60_release();
+	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_7,GPIO_PIN_RESET);
+	ENC28J60_SendByte(ENC28J60_WRITE_BUF_MEM);
+	while (len--)
+		ENC28J60_SendByte(*data++);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
 }
 
 void enc28j60SetBank(uint8_t address)
